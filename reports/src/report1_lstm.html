@@ -1,0 +1,677 @@
+<title>LSTM Information Ladder</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column (~68ch) with figures that break out wider; a bedside-monitor feel: paper ground, ink traces, three channel colours for the three model variants. */
+:root {
+  --paper: #f6f7f6;
+  --surface: #fcfcfb;
+  --ink: #14181a;
+  --ink-2: #4a5257;
+  --muted: #7a8387;
+  --rule: #dde1e0;
+  --grid: #e6e9e8;
+  --accent: #1c5cab;
+  --shade: rgba(20, 24, 26, 0.055);
+  --s-plant: #2a78d6;
+  --s-filter: #eb6834;
+  --s-bi: #1baf7a;
+  --f-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --f-body: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --step--1: 0.84rem;
+  --step-0: 1.06rem;
+  --step-1: 1.3rem;
+  --step-2: 1.7rem;
+  --step-3: 2.5rem;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --paper: #111415;
+    --surface: #171b1c;
+    --ink: #e8ecea;
+    --ink-2: #b6bebf;
+    --muted: #869094;
+    --rule: #2b3133;
+    --grid: #232829;
+    --accent: #6da7ec;
+    --shade: rgba(232, 236, 234, 0.06);
+    --s-plant: #3987e5;
+    --s-filter: #d95926;
+    --s-bi: #199e70;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper: #111415;
+  --surface: #171b1c;
+  --ink: #e8ecea;
+  --ink-2: #b6bebf;
+  --muted: #869094;
+  --rule: #2b3133;
+  --grid: #232829;
+  --accent: #6da7ec;
+  --shade: rgba(232, 236, 234, 0.06);
+  --s-plant: #3987e5;
+  --s-filter: #d95926;
+  --s-bi: #199e70;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--f-body);
+  font-size: var(--step-0);
+  line-height: 1.6;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0 4rem;
+}
+main { max-width: 980px; margin: 0 auto; display: flex; flex-direction: column; gap: 3.2rem; }
+.col { max-width: 68ch; }
+section { display: flex; flex-direction: column; gap: 1rem; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
+h1 { font-size: var(--step-3); line-height: 1.08; font-weight: 700; }
+h2 { font-size: var(--step-2); line-height: 1.2; font-weight: 600; }
+h3 { font-size: var(--step-1); line-height: 1.3; font-weight: 600; }
+p { margin: 0; }
+a { color: var(--accent); }
+.eyebrow {
+  font-family: var(--f-mono); font-size: var(--step--1); text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--muted);
+}
+.mono, code { font-family: var(--f-mono); font-size: 0.9em; }
+.num { font-variant-numeric: tabular-nums; }
+.muted { color: var(--muted); }
+.ink2 { color: var(--ink-2); }
+
+header.top { padding-top: 3rem; display: flex; flex-direction: column; gap: 1rem; border-bottom: 1px solid var(--rule); padding-bottom: 2rem; }
+.lede { font-size: var(--step-1); line-height: 1.5; color: var(--ink-2); max-width: 60ch; }
+.meta { display: flex; flex-wrap: wrap; gap: 0.4rem 1.6rem; font-family: var(--f-mono); font-size: var(--step--1); color: var(--muted); }
+
+/* ladder table: the central object */
+.ladder { width: 100%; border-collapse: collapse; font-family: var(--f-display); }
+.ladder th, .ladder td { padding: 0.9rem 1rem; text-align: left; border-bottom: 1px solid var(--rule); vertical-align: top; }
+.ladder thead th { font-family: var(--f-mono); font-weight: 400; font-size: var(--step--1); color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.ladder .vname { display: flex; align-items: center; gap: 0.6rem; font-weight: 600; font-size: var(--step-0); }
+.ladder .vdesc { font-family: var(--f-body); font-weight: 400; font-size: var(--step--1); color: var(--ink-2); margin-top: 0.2rem; }
+.ladder .mae { font-size: var(--step-2); font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.ladder .sub { font-family: var(--f-mono); font-size: 0.78rem; color: var(--muted); margin-top: 0.25rem; }
+.ladder .pending .mae { color: var(--muted); font-weight: 500; font-size: var(--step-1); }
+.swatch { width: 14px; height: 3px; border-radius: 2px; flex: none; }
+.swatch.dash { background: none !important; border-top: 3px dashed; height: 0; }
+.s-plant { background: var(--s-plant); border-color: var(--s-plant); }
+.s-filter { background: var(--s-filter); border-color: var(--s-filter); }
+.s-bi { background: var(--s-bi); border-color: var(--s-bi); }
+.scroll-x { overflow-x: auto; }
+
+/* information diagram */
+.steps { display: grid; grid-template-columns: 9rem repeat(7, minmax(2.6rem, 1fr)); gap: 4px; font-family: var(--f-mono); font-size: 0.8rem; min-width: 34rem; }
+.steps .lbl { font-family: var(--f-display); font-weight: 600; font-size: 0.9rem; display: flex; align-items: center; gap: 0.5rem; }
+.steps .cell { border-radius: 3px; text-align: center; padding: 0.35rem 0; border: 1px solid var(--rule); color: var(--muted); background: var(--surface); }
+.steps .cell.on { color: var(--ink); border-color: transparent; }
+.steps .row-plant .on { background: color-mix(in srgb, var(--s-plant) 22%, var(--surface)); }
+.steps .row-filter .on { background: color-mix(in srgb, var(--s-filter) 22%, var(--surface)); }
+.steps .row-bi .on { background: color-mix(in srgb, var(--s-bi) 22%, var(--surface)); }
+.steps .cell.target { border: 1.5px solid var(--ink); color: var(--ink); background: var(--surface); }
+.steps .head { text-align: center; color: var(--muted); }
+.steps > div { display: contents; }
+
+.loop { width: 100%; max-width: 640px; height: auto; }
+.loop text { font-family: var(--f-mono); font-size: 12px; fill: var(--ink-2); }
+.loop .big { font-family: var(--f-display); font-size: 14px; font-weight: 600; fill: var(--ink); }
+.loop .box { fill: var(--surface); stroke: var(--rule); stroke-width: 1.2; }
+.loop .wire { fill: none; stroke: var(--ink-2); stroke-width: 1.5; }
+.loop .arrowhead { fill: var(--ink-2); }
+.loop .hot { stroke: var(--accent); }
+.loop .hot-fill { fill: var(--accent); }
+
+/* figures */
+figure { margin: 0; display: flex; flex-direction: column; gap: 0.7rem; }
+figcaption { font-size: var(--step--1); color: var(--ink-2); max-width: 75ch; line-height: 1.5; }
+figcaption b { font-family: var(--f-display); font-weight: 600; color: var(--ink); }
+.panel { background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; padding: 1rem 1rem 0.6rem; position: relative; }
+.chart { width: 100%; position: relative; }
+.chart svg { display: block; width: 100%; overflow: visible; }
+.chart text { font-family: var(--f-mono); font-size: 11px; fill: var(--muted); }
+.chart .axis-title { fill: var(--ink-2); }
+.chart .gridline { stroke: var(--grid); stroke-width: 1; }
+.chart .baseline { stroke: var(--rule); stroke-width: 1; }
+.chart .series { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.chart .truth { fill: none; stroke: var(--ink); stroke-width: 2.2; stroke-linejoin: round; }
+.chart .uin { fill: none; stroke: var(--ink-2); stroke-width: 1.6; }
+.chart .exp-shade { fill: var(--shade); }
+.chart .crosshair { stroke: var(--ink-2); stroke-width: 1; }
+.legend { display: flex; flex-wrap: wrap; gap: 0.35rem 1.1rem; font-family: var(--f-mono); font-size: 0.78rem; color: var(--ink-2); }
+.legend span { display: inline-flex; align-items: center; gap: 0.45rem; }
+.tip {
+  position: absolute; pointer-events: none; background: var(--surface); color: var(--ink);
+  border: 1px solid var(--rule); border-radius: 4px; padding: 0.4rem 0.6rem; font-family: var(--f-mono);
+  font-size: 0.75rem; line-height: 1.45; box-shadow: 0 4px 14px rgba(0,0,0,0.12); white-space: nowrap; z-index: 5;
+}
+.tip .row { display: flex; align-items: center; gap: 0.45rem; }
+.tip .row b { font-weight: 500; margin-left: auto; padding-left: 0.8rem; font-variant-numeric: tabular-nums; }
+.two-up { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 1.2rem; }
+
+/* breath viewer controls */
+.controls { display: flex; flex-direction: column; gap: 0.6rem; }
+.seg { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.seg button, .chips button {
+  font-family: var(--f-mono); font-size: 0.78rem; border: 1px solid var(--rule); background: var(--paper);
+  color: var(--ink-2); border-radius: 999px; padding: 0.3rem 0.75rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.45rem;
+}
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.chips { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.chips button[aria-pressed="false"] { opacity: 0.45; }
+.chips button[aria-pressed="true"] { border-color: var(--ink-2); color: var(--ink); }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.breath-meta { font-family: var(--f-mono); font-size: 0.78rem; color: var(--ink-2); display: flex; flex-wrap: wrap; gap: 0.3rem 1.2rem; }
+
+/* heatmaps */
+.heat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(176px, 1fr)); gap: 1.2rem; }
+.heat h4 { margin: 0 0 0.4rem; font-family: var(--f-mono); font-weight: 500; font-size: 0.8rem; color: var(--ink-2); display: flex; align-items: center; gap: 0.45rem; }
+.heat table { border-collapse: separate; border-spacing: 2px; font-family: var(--f-mono); font-size: 0.74rem; }
+.heat td, .heat th { width: 46px; height: 34px; text-align: center; border-radius: 3px; font-variant-numeric: tabular-nums; }
+.heat th { color: var(--muted); font-weight: 400; height: auto; }
+.heat-scale { display: flex; align-items: center; gap: 0.5rem; font-family: var(--f-mono); font-size: 0.74rem; color: var(--muted); }
+.heat-scale .bar { height: 8px; width: 160px; border-radius: 2px; }
+
+/* findings */
+.finding { display: grid; grid-template-columns: 2.4rem 1fr; gap: 0 1rem; }
+.finding .n { font-family: var(--f-display); font-weight: 700; font-size: var(--step-2); color: var(--muted); line-height: 1.1; }
+.finding .body { display: flex; flex-direction: column; gap: 0.75rem; }
+.callout { border-left: 3px solid var(--accent); padding: 0.2rem 0 0.2rem 1rem; color: var(--ink-2); font-size: var(--step--1); }
+
+/* data tables */
+table.data { border-collapse: collapse; font-family: var(--f-mono); font-size: 0.8rem; width: 100%; }
+table.data th, table.data td { padding: 0.5rem 0.7rem; border-bottom: 1px solid var(--rule); text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+table.data th:first-child, table.data td:first-child { text-align: left; }
+table.data thead th { color: var(--muted); font-weight: 400; }
+table.data td .cellname { display: inline-flex; align-items: center; gap: 0.45rem; }
+dl.spec { display: grid; grid-template-columns: max-content 1fr; gap: 0.45rem 1.4rem; margin: 0; font-size: var(--step--1); }
+dl.spec dt { font-family: var(--f-mono); color: var(--muted); }
+dl.spec dd { margin: 0; color: var(--ink); }
+ul.tight { margin: 0; padding-left: 1.2rem; display: flex; flex-direction: column; gap: 0.45rem; }
+footer { border-top: 1px solid var(--rule); padding-top: 1.2rem; font-family: var(--f-mono); font-size: 0.75rem; color: var(--muted); }
+@media (max-width: 560px) {
+  .finding { grid-template-columns: 1fr; }
+  .ladder th, .ladder td { padding: 0.7rem 0.5rem; }
+  dl.spec { grid-template-columns: 1fr; gap: 0.1rem; }
+  dl.spec dd { margin-bottom: 0.5rem; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<main>
+  <header class="top">
+    <div class="eyebrow">Ventilator pressure prediction · Report 1 of 4 · Baseline</div>
+    <h1>LSTM Information Ladder</h1>
+    <p class="lede">How well does a plain recurrent network predict airway pressure from the ventilator's valve commands, and how much of that skill comes from information a real-time physical model could never have?</p>
+    <div class="meta"><span>Data: Google Brain × Princeton, Kaggle 2021</span><span>Holdout: 15,090 breaths</span><span>Metric: MAE, inspiration only, cmH₂O</span><span>5 of 6 runs complete</span></div>
+  </header>
+
+  <section>
+    <h2 class="col">The result in one table</h2>
+    <p class="col">Same network, same training budget, six information conditions. Rows add information about the valve command <span class="mono">u_in</span>; columns add the one pressure reading taken before the breath starts.</p>
+    <div class="scroll-x">
+      <table class="ladder" id="ladder-table" aria-label="Holdout MAE by model variant and track">
+        <thead><tr><th>What the model sees</th><th>Track B · no pressure</th><th>Track A · p[0] given</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <p class="col muted" style="font-size: var(--step--1)">Lower is better. The second line in each cell is the per-breath median MAE and the 95th percentile. Bidirectional on Track A is queued and will be added when it has run.</p>
+  </section>
+
+  <section class="col">
+    <h2>Why the ladder matters here</h2>
+    <p>The data come from a physical rig: a PVP1 ventilator pushing air through a proportional inspiratory valve into an IngMar QuickLung, a bellows lung with selectable resistance <span class="mono">R ∈ {5, 20, 50}</span> cmH₂O·s/L and compliance <span class="mono">C ∈ {10, 20, 50}</span> mL/cmH₂O. Each breath is 80 samples at about 33 ms; only the inspiratory phase (valve-out closed, 25 to 32 samples) is scored.</p>
+    <p>The catch is that most breaths were driven by a feedback controller. A PI controller reads the pressure sensor and sets the valve opening from the error to a target. Information flows both ways, so the valve command is partly a <em>consequence</em> of the pressure, not only its cause.</p>
+  </section>
+
+  <figure>
+    <div class="panel" style="padding: 1rem;">
+      <svg class="loop" viewBox="0 0 640 210" role="img" aria-label="Closed loop: controller sets valve command u_in, valve drives flow into the lung, the pressure sensor feeds pressure back to the controller.">
+        <defs>
+          <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="arrowhead" d="M0,0 L10,5 L0,10 z"/></marker>
+          <marker id="ah-hot" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="hot-fill" d="M0,0 L10,5 L0,10 z"/></marker>
+        </defs>
+        <rect class="box" x="20" y="40" width="150" height="64" rx="6"/>
+        <text class="big" x="95" y="68" text-anchor="middle">PI controller</text>
+        <text x="95" y="88" text-anchor="middle">target kt, gains kp, ki</text>
+        <rect class="box" x="245" y="40" width="150" height="64" rx="6"/>
+        <text class="big" x="320" y="68" text-anchor="middle">Inspiratory valve</text>
+        <text x="320" y="88" text-anchor="middle">opening → flow Q</text>
+        <rect class="box" x="470" y="40" width="150" height="64" rx="6"/>
+        <text class="big" x="545" y="68" text-anchor="middle">Bellows lung</text>
+        <text x="545" y="88" text-anchor="middle">R, C</text>
+        <path class="wire" d="M170 72 H243" marker-end="url(#ah)"/>
+        <text x="207" y="62" text-anchor="middle">u_in</text>
+        <path class="wire" d="M395 72 H468" marker-end="url(#ah)"/>
+        <text x="432" y="62" text-anchor="middle">Q(t)</text>
+        <path class="wire hot" d="M545 104 V160 H95 V106" marker-end="url(#ah-hot)"/>
+        <text x="320" y="152" text-anchor="middle" style="fill: var(--accent)">pressure p(t) fed back</text>
+        <text x="320" y="186" text-anchor="middle">so u_in[k] already depends on p[k], and future u_in depends on future p</text>
+      </svg>
+    </div>
+    <figcaption><b>The controller closes the loop.</b> A model that reads <span class="mono">u_in</span> can learn plant physics (valve → lung → pressure) or it can learn to read the controller backwards (u_in → the pressure that caused it). The ladder separates the two.</figcaption>
+  </figure>
+
+  <section>
+    <h2 class="col">Three variants, defined by what they may read</h2>
+    <p class="col">To predict pressure at step <span class="mono">k</span>, each variant gets a different window of the valve command. Everything else (R, C, time, step size, and on Track A the measured starting pressure) is identical.</p>
+    <div class="scroll-x">
+      <div class="steps" role="table" aria-label="Which u_in samples each variant sees when predicting p[k]">
+        <div role="row"><span></span><span class="head">k−3</span><span class="head">k−2</span><span class="head">k−1</span><span class="head">k</span><span class="head">k+1</span><span class="head">k+2</span><span class="head">…end</span></div>
+        <div class="row-plant" role="row"><span class="lbl"><i class="swatch s-plant"></i>Plant-causal</span><span class="cell on">u</span><span class="cell on">u</span><span class="cell on">u</span><span class="cell target">p?</span><span class="cell">·</span><span class="cell">·</span><span class="cell">·</span></div>
+        <div class="row-filter" role="row"><span class="lbl"><i class="swatch s-filter"></i>Filter-causal</span><span class="cell on">u</span><span class="cell on">u</span><span class="cell on">u</span><span class="cell on target">u → p?</span><span class="cell">·</span><span class="cell">·</span><span class="cell">·</span></div>
+        <div class="row-bi" role="row"><span class="lbl"><i class="swatch s-bi"></i>Bidirectional</span><span class="cell on">u</span><span class="cell on">u</span><span class="cell on">u</span><span class="cell on target">u → p?</span><span class="cell on">u</span><span class="cell on">u</span><span class="cell on">u</span></div>
+      </div>
+    </div>
+    <ul class="col tight">
+      <li><b>Plant-causal</b> sees valve commands strictly before step k. This is the information a physical simulator has: valve opening drives flow, flow fills the lung, and pressure follows. It is the fair comparison for the physics model in Report 4.</li>
+      <li><b>Filter-causal</b> also sees <span class="mono">u_in[k]</span>. Still legitimate in real time, since the command is issued at k, but it lets the model read the controller's reaction to the pressure it just measured. This is a monitor, not a simulator.</li>
+      <li><b>Bidirectional</b> sees the whole breath, including the expiratory phase. It cannot run live. Top Kaggle entries used this setting.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2 class="col">Model and training</h2>
+    <div class="two-up">
+      <dl class="spec">
+        <dt>Network</dt><dd>2-layer LSTM, 256 hidden units (bidirectional: 256 per direction), linear head; pressure = 8 + 10 · head(h)</dd>
+        <dt>Inputs per step</dt><dd>u_in/100, u_out, one-hot R (3), one-hot C (3), Δt/35 ms, t/3 s; Track A adds (p[0] − 6)/3 as a constant channel</dd>
+        <dt>Plant shift</dt><dd>plant-causal inputs are delayed one step, so step k never contains u_in[k]</dd>
+        <dt>Loss</dt><dd>MAE on scored steps only (inspiration; Track A also drops step 0, which is an input)</dd>
+      </dl>
+      <dl class="spec">
+        <dt>Optimiser</dt><dd>AdamW, lr 2×10⁻³, weight decay 10⁻², cosine schedule with 5% warm-up, gradient clip 1.0</dd>
+        <dt>Budget</dt><dd>30 epochs, batch 512, early stopping on validation (patience 5), best checkpoint kept</dd>
+        <dt>Split</dt><dd>54,324 train / 6,036 validation / 15,090 holdout breaths, stratified by (R, C); distributions of u_in, pressure, p[0], inspiration length and PI fraction match across splits (KS p ≥ 0.32)</dd>
+        <dt>Hardware</dt><dd>Apple M1 CPU, 4 threads (faster than the M1 GPU for this sequence length)</dd>
+      </dl>
+    </div>
+  </section>
+
+  <figure>
+    <div class="panel">
+      <div class="controls">
+        <div class="seg" id="ex-seg" role="group" aria-label="Choose an example breath"></div>
+        <div class="chips" id="ex-chips" role="group" aria-label="Show or hide model predictions"></div>
+        <div class="breath-meta" id="ex-meta"></div>
+      </div>
+      <div class="chart" id="ex-p" style="margin-top: 0.6rem;"></div>
+      <div class="chart" id="ex-u"></div>
+    </div>
+    <figcaption><b>Eight holdout breaths.</b> Black is the measured pressure; coloured lines are model predictions on the scored steps (solid: Track A, dashed: Track B). The lower trace is the valve command. Shaded: expiration, which is not scored and not trained, so predictions are not drawn there. Breaths were picked by rule from the filter-causal Track A error distribution, not by eye.</figcaption>
+  </figure>
+
+  <section>
+    <h2 class="col">What the ladder shows</h2>
+
+    <div class="finding">
+      <div class="n">1</div>
+      <div class="body">
+        <h3>The plant forgets its starting pressure within about five steps</h3>
+        <p class="col">For the plant-causal model, knowing p[0] cuts the error by 0.27 cmH₂O at step 1, but the benefit is under 0.1 by step 6 (0.2 s) and about 0.03 after that. Physically this is what a dissipative system under feedback control should do: the controller pulls pressure towards its target regardless of where the breath began, so the initial condition decays faster than the open-loop RC time would suggest.</p>
+      </div>
+    </div>
+    <figure>
+      <div class="panel"><div class="legend" id="gain-legend"></div><div class="chart" id="gain-chart"></div></div>
+      <figcaption><b>Benefit of knowing p[0], by inspiratory step.</b> MAE on Track B minus MAE on Track A. The plant model's gain fades; the filter model's gain persists through the whole inspiration.</figcaption>
+    </figure>
+
+    <div class="finding">
+      <div class="n">2</div>
+      <div class="body">
+        <h3>Seeing the current command helps only once the pressure level is anchored</h3>
+        <p class="col">On Track B, adding <span class="mono">u_in[k]</span> changes nothing (0.899 → 0.897). On Track A it is worth 0.09 (0.833 → 0.745), and the benefit of p[0] lasts the whole breath instead of fading. Our reading: the controller computes <span class="mono">u_in[k]</span> from the pressure it measured at k, so the current command is an indirect pressure gauge. That gauge reads relative to an unknown target and unknown gains; the measured starting pressure calibrates it. This is reading the controller, not modelling the lung.</p>
+        <p class="callout">An interpretation, not a proof. Non-PI breaths gain too (0.804 → 0.727), which fits because the non-PI breaths are also feedback controllers, just learned ones.</p>
+      </div>
+    </div>
+
+    <div class="finding">
+      <div class="n">3</div>
+      <div class="body">
+        <h3>Bidirectional wins, using information a simulator cannot have</h3>
+        <p class="col">Without any pressure input, the bidirectional model reaches 0.667, better than every causal model with p[0]. Two signatures say where the gain comes from.</p>
+        <ul class="tight col">
+          <li><b>The start of the breath.</b> Its step-0 bias is half that of the causal Track B models (+0.15 vs +0.30 cmH₂O), and on non-PI breaths its error over the first five steps is 0.37 against 0.69. Our earlier probe found that expiratory u_in predicts p[0] to 0.28 cmH₂O, because breaths were recorded in batches and the previous breath sets the starting pressure. The bidirectional model reads the expiratory phase, so it can identify the batch.</li>
+          <li><b>High targets.</b> At PI target kt = 35 it beats even filter-causal Track A, 0.85 against 1.07. Future valve commands are the controller's reactions to future pressure, so they reveal where the pressure went.</li>
+        </ul>
+      </div>
+    </div>
+    <figure>
+      <div class="panel"><div class="legend" id="step-legend"></div><div class="chart" id="step-chart"></div></div>
+      <figcaption><b>MAE by inspiratory step, all five runs.</b> Errors are smallest just after the breath starts and climb as pressure builds. Later steps average over fewer breaths, since inspiration lasts 25 to 32 steps.</figcaption>
+    </figure>
+    <div class="two-up">
+      <figure>
+        <div class="panel"><div class="legend" id="kt-legend"></div><div class="chart" id="kt-chart"></div></div>
+        <figcaption><b>MAE against the PI target pressure</b> (PI breaths, about 1,300 to 1,600 each). Higher targets are harder for every model; the bidirectional model degrades least.</figcaption>
+      </figure>
+      <figure>
+        <div class="panel"><div class="legend" id="bias-legend"></div><div class="chart" id="bias-chart"></div></div>
+        <figcaption><b>Signed bias by step</b> (prediction − truth). Track B models start high, then all runs settle near zero: the remaining error is scatter, not a systematic offset.</figcaption>
+      </figure>
+    </div>
+
+    <div class="finding">
+      <div class="n">4</div>
+      <div class="body">
+        <h3>Where the errors live: high resistance, high pressure, and whole-breath offsets</h3>
+        <p class="col">Every variant finds the same cells hard. R = 50 is worst (filter-causal Track A: 0.96 at C = 10) and R = 5, C = 50 is easiest (0.33). Error rises with pressure up to about 40 cmH₂O. In aggregate the bias is near zero, but individual breaths can sit off by a constant: in the 99th-percentile example above all five models overshoot the whole inspiration by about 3 cmH₂O. That pattern suggests a hidden per-breath factor, such as which of the ten ventilators recorded it and how its valve was calibrated. A physics model can carry that as one gain estimated online from early samples.</p>
+      </div>
+    </div>
+    <figure>
+      <div class="panel">
+        <div class="heat-scale" id="heat-scale"></div>
+        <div class="heat-grid" id="heat-grid" style="margin-top: 0.8rem;"></div>
+      </div>
+      <figcaption><b>Holdout MAE by lung setting.</b> Rows: resistance R (cmH₂O·s/L). Columns: compliance C (mL/cmH₂O). One shared colour scale; darker is worse.</figcaption>
+    </figure>
+
+    <div class="finding">
+      <div class="n">5</div>
+      <div class="body">
+        <h3>None of these models has finished learning</h3>
+        <p class="col">Every run's best validation epoch was its last one, and the curves are still falling when the cosine schedule reaches zero. The 30-epoch budget is the same for every rung, so comparisons along the ladder are fair, but the absolute numbers are not the LSTM's ceiling. Strong Kaggle LSTMs reached roughly 0.15 to 0.2 with engineered features, hundreds of epochs and ensembling.</p>
+      </div>
+    </div>
+    <figure>
+      <div class="panel"><div class="legend" id="curve-legend"></div><div class="chart" id="curve-chart"></div></div>
+      <figcaption><b>Validation MAE by epoch.</b> No run plateaus before the schedule ends.</figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <h2 class="col">What it costs</h2>
+    <p class="col">Measured with one protocol for every model: parameter count, multiply-add FLOPs per 80-step breath, CPU latency in batches of 1,024 breaths, and streaming latency (one step at a time, as a bedside monitor would run it).</p>
+    <div class="scroll-x">
+      <table class="data" id="cost-table" aria-label="Cost of each run">
+        <thead><tr><th>Run</th><th>Holdout MAE</th><th>Parameters</th><th>MFLOP / breath</th><th>Batched µs / breath</th><th>Streaming ms / breath</th><th>Train min</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <p class="col muted" style="font-size: var(--step--1)">Streaming is about 95 µs per step, well inside the 33 ms sampling interval, so every causal variant could run live. The bidirectional model cannot stream at all: each output needs the whole breath.</p>
+  </section>
+
+  <section class="col">
+    <h2>What the physics model has to beat</h2>
+    <p>The fair comparison for a plant simulator is the plant-causal row: <b>0.833</b> with p[0] and <b>0.899</b> without, from about 800,000 parameters and 128 MFLOP per breath. The proposed targets for the physics model are under 1% of those parameters (about 8,000), at least ten times cheaper inference, and CPU training in minutes. The filter-causal row, 0.745, is the bar for the monitor variant if the simulator alone falls short.</p>
+    <p>The ladder also hands the physics model two concrete jobs. Track B needs a sensible initial pressure without batch leakage. The level offsets in Finding 4 point to a per-breath valve gain that should be estimated online rather than learned as a constant.</p>
+  </section>
+
+  <section class="col">
+    <h2>Limits of this baseline</h2>
+    <ul class="tight">
+      <li>One seed per run; differences under about 0.02 should not be read as real.</li>
+      <li>Undertrained by design (Finding 5). A longer schedule would lower every number.</li>
+      <li>The split is random over breaths, so breaths from one recording batch can sit in both train and holdout. The Kaggle test set has the same property; it flatters models that identify batches.</li>
+      <li>Bidirectional Track A has not been run yet.</li>
+    </ul>
+  </section>
+
+  <footer>Built from <span class="mono">results/report1/report1_data.json</span> (scripts/11_report_lstm.py). Holdout metrics recomputed from saved predictions and matched to the training logs exactly.</footer>
+</main>
+
+<script id="report-data" type="application/json">__DATA__</script>
+<script>
+(() => {
+  const D = JSON.parse(document.getElementById("report-data").textContent);
+  const RUNS = ["plant_A", "plant_B", "filter_A", "filter_B", "bi_B"];
+  const ORDER = ["plant", "filter", "bi"];
+  const NAME = { plant: "Plant-causal", filter: "Filter-causal", bi: "Bidirectional" };
+  const have = r => D.runs[r] != null;
+  const runs = RUNS.filter(have);
+  const variantOf = r => r.split("_")[0], trackOf = r => r.split("_")[1];
+  const label = r => `${NAME[variantOf(r)]} · ${trackOf(r)}`;
+  const color = r => `var(--s-${variantOf(r)})`;
+  const dashed = r => trackOf(r) === "B";
+  const fmt = (v, d = 3) => v == null ? "–" : (+v).toFixed(d);
+  const el = (tag, attrs = {}, text) => {
+    const n = document.createElementNS("http://www.w3.org/2000/svg", tag);
+    for (const k in attrs) n.setAttribute(k, attrs[k]);
+    if (text != null) n.textContent = text;
+    return n;
+  };
+  const swatch = r => `<i class="swatch s-${variantOf(r)}${dashed(r) ? " dash" : ""}"></i>`;
+
+  // ---- ladder table
+  const q = D.breath_error_quantiles;
+  const DESC = {
+    plant: "u_in up to k−1. What a simulator knows.",
+    filter: "u_in up to k. Can read the controller.",
+    bi: "The whole breath. Cannot run live."
+  };
+  const tb = document.querySelector("#ladder-table tbody");
+  ORDER.forEach(v => {
+    const cell = r => {
+      if (!have(r)) return `<td class="pending"><div class="mae">pending</div><div class="sub">queued, about 95 min to run</div></td>`;
+      return `<td><div class="mae">${fmt(D.runs[r].mae)}</div><div class="sub">median ${fmt(q[r]["50"], 2)} · p95 ${fmt(q[r]["95"], 2)}</div></td>`;
+    };
+    tb.insertAdjacentHTML("beforeend", `<tr><th scope="row"><div class="vname"><i class="swatch s-${v}"></i>${NAME[v]}</div><div class="vdesc">${DESC[v]}</div></th>${cell(v + "_B")}${cell(v + "_A")}</tr>`);
+  });
+
+  // ---- cost table
+  const ct = document.querySelector("#cost-table tbody");
+  ["plant_B", "plant_A", "filter_B", "filter_A", "bi_B"].filter(have).forEach(r => {
+    const m = D.runs[r];
+    ct.insertAdjacentHTML("beforeend", `<tr><td><span class="cellname">${swatch(r)}${label(r)}</span></td><td>${fmt(m.mae)}</td><td>${m.n_params.toLocaleString("en-GB")}</td><td>${(m.flops_per_breath / 1e6).toFixed(0)}</td><td>${Math.round(m.batched_us_per_breath)}</td><td>${m.streaming_ms_per_breath == null ? "n/a" : fmt(m.streaming_ms_per_breath, 1)}</td><td>${fmt(m.train_minutes, 0)}</td></tr>`);
+  });
+
+  // ---- generic line chart with crosshair tooltip
+  function legend(id, items) {
+    document.getElementById(id).innerHTML = items.map(r => `<span>${swatch(r)}${label(r)}</span>`).join("");
+  }
+  function niceTicks(lo, hi, n = 5) {
+    const span = hi - lo, raw = span / n, mag = Math.pow(10, Math.floor(Math.log10(raw)));
+    const step = [1, 2, 2.5, 5, 10].map(s => s * mag).find(s => span / s <= n) || 10 * mag;
+    const out = [];
+    for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) out.push(+v.toFixed(10));
+    return out;
+  }
+  function lineChart(id, cfg) {
+    const host = document.getElementById(id);
+    const draw = () => {
+      host.innerHTML = "";
+      const W = Math.max(280, host.clientWidth), H = cfg.height || 260;
+      const m = { l: 46, r: 14, t: 12, b: 38 };
+      const xs = cfg.x;
+      const all = cfg.series.flatMap(s => s.values.filter(v => v != null));
+      let lo = cfg.yMin != null ? cfg.yMin : Math.min(...all), hi = cfg.yMax != null ? cfg.yMax : Math.max(...all);
+      const pad = (hi - lo) * 0.06; if (cfg.yMin == null) lo -= pad; hi += pad;
+      const yt = niceTicks(lo, hi, cfg.yTicks || 5);
+      lo = Math.min(lo, yt[0]); hi = Math.max(hi, yt[yt.length - 1]);
+      const xlo = xs[0], xhi = xs[xs.length - 1];
+      const X = v => m.l + (v - xlo) / (xhi - xlo) * (W - m.l - m.r);
+      const Y = v => m.t + (hi - v) / (hi - lo) * (H - m.t - m.b);
+      const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, height: H, role: "img", "aria-label": cfg.aria || "" });
+      yt.forEach(v => {
+        svg.append(el("line", { x1: m.l, x2: W - m.r, y1: Y(v), y2: Y(v), class: Math.abs(v) < 1e-9 ? "baseline" : "gridline" }));
+        svg.append(el("text", { x: m.l - 8, y: Y(v) + 4, "text-anchor": "end" }, cfg.yFmt ? cfg.yFmt(v) : v));
+      });
+      (cfg.xTicks || niceTicks(xlo, xhi, 6)).forEach(v => svg.append(el("text", { x: X(v), y: H - m.b + 16, "text-anchor": "middle" }, v)));
+      svg.append(el("text", { x: m.l + (W - m.l - m.r) / 2, y: H - 4, "text-anchor": "middle", class: "axis-title" }, cfg.xLabel));
+      svg.append(el("text", { x: 12, y: m.t + (H - m.t - m.b) / 2, "text-anchor": "middle", class: "axis-title", transform: `rotate(-90 12 ${m.t + (H - m.t - m.b) / 2})` }, cfg.yLabel));
+      cfg.series.forEach(s => {
+        let d = "", pen = false;
+        s.values.forEach((v, i) => {
+          if (v == null) { pen = false; return; }
+          d += (pen ? "L" : "M") + X(xs[i]).toFixed(1) + "," + Y(v).toFixed(1); pen = true;
+        });
+        svg.append(el("path", { d, class: "series", style: `stroke:${s.color}`, "stroke-dasharray": s.dash ? "6 4" : "none" }));
+        if (cfg.markers) s.values.forEach((v, i) => { if (v != null) svg.append(el("circle", { cx: X(xs[i]), cy: Y(v), r: 4, style: `fill:${s.color};stroke:var(--surface);stroke-width:2` })); });
+      });
+      const cross = el("line", { y1: m.t, y2: H - m.b, class: "crosshair", visibility: "hidden" });
+      svg.append(cross);
+      host.append(svg);
+      const tip = document.createElement("div"); tip.className = "tip"; tip.hidden = true; host.append(tip);
+      svg.addEventListener("pointermove", e => {
+        const rect = svg.getBoundingClientRect(), px = (e.clientX - rect.left) * W / rect.width;
+        let i = 0, best = Infinity;
+        xs.forEach((v, j) => { const dd = Math.abs(X(v) - px); if (dd < best) { best = dd; i = j; } });
+        cross.setAttribute("x1", X(xs[i])); cross.setAttribute("x2", X(xs[i])); cross.setAttribute("visibility", "visible");
+        const rows = cfg.series.filter(s => s.values[i] != null).sort((a, b) => b.values[i] - a.values[i]);
+        tip.innerHTML = `<div class="muted">${cfg.xName || cfg.xLabel} ${xs[i]}</div>` + rows.map(s => `<div class="row">${s.sw}${s.name}<b>${fmt(s.values[i], cfg.digits ?? 3)}</b></div>`).join("");
+        tip.hidden = false;
+        const left = X(xs[i]) / W * rect.width;
+        tip.style.left = (left + 14 + tip.offsetWidth > rect.width ? left - 14 - tip.offsetWidth : left + 14) + "px";
+        tip.style.top = "8px";
+      });
+      svg.addEventListener("pointerleave", () => { tip.hidden = true; cross.setAttribute("visibility", "hidden"); });
+    };
+    draw();
+    new ResizeObserver(() => { if (host.clientWidth && Math.abs(host.clientWidth - (host._w || 0)) > 4) { host._w = host.clientWidth; draw(); } }).observe(host);
+  }
+  const runSeries = (rs, get) => rs.map(r => ({ name: label(r), color: color(r), dash: dashed(r), sw: swatch(r), values: get(r) }));
+
+  // per-step MAE
+  const steps = [...Array(32).keys()];
+  legend("step-legend", runs);
+  lineChart("step-chart", { x: steps, series: runSeries(runs, r => D.runs[r].per_step), xLabel: "inspiratory step", xName: "step", yLabel: "MAE (cmH₂O)", yMin: 0, xTicks: [0, 5, 10, 15, 20, 25, 30], aria: "MAE by inspiratory step for each run" });
+
+  // track A gain
+  const G = D.diagnostics.trackA_gain_per_step;
+  document.getElementById("gain-legend").innerHTML = ["plant", "filter"].map(v => `<span><i class="swatch s-${v}"></i>${NAME[v]} (B − A)</span>`).join("");
+  lineChart("gain-chart", {
+    x: steps, xLabel: "inspiratory step", xName: "step", yLabel: "MAE reduction (cmH₂O)", yMin: 0, xTicks: [1, 5, 10, 15, 20, 25, 30], height: 230,
+    series: ["plant", "filter"].map(v => ({ name: NAME[v], color: `var(--s-${v})`, sw: `<i class="swatch s-${v}"></i>`, values: G[v].diff_B_minus_A })),
+    aria: "Reduction in MAE from knowing p[0], by step"
+  });
+
+  // bias
+  const biasRuns = runs;
+  legend("bias-legend", biasRuns);
+  lineChart("bias-chart", { x: steps, series: runSeries(biasRuns, r => D.diagnostics.bias_per_step[r]), xLabel: "inspiratory step", xName: "step", yLabel: "bias (cmH₂O)", xTicks: [0, 10, 20, 30], height: 240, aria: "Signed bias by step" });
+
+  // kt
+  const K = D.diagnostics.mae_by_kt;
+  const ktRuns = ["plant_B", "filter_A", "bi_B"].filter(r => K[r]);
+  legend("kt-legend", ktRuns);
+  lineChart("kt-chart", { x: K.kt, series: runSeries(ktRuns, r => K[r]), xLabel: "PI target kt (cmH₂O)", xName: "kt", yLabel: "MAE (cmH₂O)", yMin: 0, xTicks: K.kt, markers: true, height: 240, aria: "MAE against PI target pressure" });
+
+  // learning curves
+  legend("curve-legend", runs);
+  lineChart("curve-chart", { x: D.curves[runs[0]].epoch, series: runSeries(runs, r => D.curves[r].val_mae), xLabel: "epoch", yLabel: "validation MAE (cmH₂O)", yMin: 0, xTicks: [1, 5, 10, 15, 20, 25, 30], height: 240, aria: "Validation MAE by epoch" });
+
+  // ---- heatmaps
+  const RAMP = ["#cde2fb", "#b7d3f6", "#9ec5f4", "#86b6ef", "#6da7ec", "#5598e7", "#3987e5", "#2a78d6", "#256abf", "#1c5cab", "#184f95", "#104281", "#0d366b"];
+  const hex = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+  const rampAt = t => {
+    t = Math.max(0, Math.min(1, t)) * (RAMP.length - 1);
+    const i = Math.min(RAMP.length - 2, Math.floor(t)), f = t - i, a = hex(RAMP[i]), b = hex(RAMP[i + 1]);
+    const c = a.map((v, j) => Math.round(v + (b[j] - v) * f));
+    return { css: `rgb(${c})`, dark: (0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]) < 140 };
+  };
+  const vals = runs.flatMap(r => Object.values(D.runs[r].per_rc));
+  const hlo = 0.3, hhi = Math.ceil(Math.max(...vals) * 10) / 10;
+  document.getElementById("heat-scale").innerHTML = `<span>${hlo.toFixed(1)}</span><span class="bar" style="background:linear-gradient(90deg,${RAMP.join(",")})"></span><span>${hhi.toFixed(1)} cmH₂O</span>`;
+  const hg = document.getElementById("heat-grid");
+  runs.forEach(r => {
+    const rc = D.runs[r].per_rc;
+    let h = `<div class="heat"><h4>${swatch(r)}${label(r)}</h4><table><tr><th></th><th>C10</th><th>C20</th><th>C50</th></tr>`;
+    [5, 20, 50].forEach(R => {
+      h += `<tr><th>R${R}</th>`;
+      [10, 20, 50].forEach(C => {
+        const v = rc[`R${R}_C${C}`], c = rampAt((v - hlo) / (hhi - hlo));
+        h += `<td style="background:${c.css};color:${c.dark ? "#fff" : "#0b0b0b"}" title="${label(r)}, R=${R}, C=${C}: ${fmt(v)}">${v.toFixed(2)}</td>`;
+      });
+      h += `</tr>`;
+    });
+    hg.insertAdjacentHTML("beforeend", h + `</table></div>`);
+  });
+
+  // ---- breath viewer
+  const EX = D.examples;
+  const SHORT = ["Median", "90th pct", "99th pct", "Easiest cell", "Hardest cell", "Typical PI", "Typical non-PI", "Bi wins"];
+  const WHY = ["Median error (filter-causal A)", "90th-percentile error", "99th-percentile error", "Typical breath, easiest cell", "Typical breath, hardest cell", "Typical PI breath", "Typical non-PI breath", "Bidirectional beats filter-causal B by 0.71"];
+  const shown = new Set(["plant_A", "filter_A", "bi_B"].filter(have));
+  let cur = 0;
+  const seg = document.getElementById("ex-seg");
+  EX.forEach((e, i) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.id = `ex-btn-${i}`; b.textContent = SHORT[i] || `Breath ${i + 1}`; b.title = WHY[i] || e.why;
+    b.setAttribute("aria-pressed", i === cur);
+    b.onclick = () => { cur = i; seg.querySelectorAll("button").forEach((x, j) => x.setAttribute("aria-pressed", j === i)); drawBreath(); };
+    seg.append(b);
+  });
+  const chips = document.getElementById("ex-chips");
+  runs.forEach(r => {
+    const b = document.createElement("button");
+    b.type = "button"; b.id = `chip-${r}`; b.innerHTML = `${swatch(r)}${label(r)}`;
+    b.setAttribute("aria-pressed", shown.has(r));
+    b.onclick = () => { shown.has(r) ? shown.delete(r) : shown.add(r); b.setAttribute("aria-pressed", shown.has(r)); drawBreath(); };
+    chips.append(b);
+  });
+  const getPred = (e, r) => (e.pred && e.pred[r]) || e[`pred_${r}`] || e[r];
+  const scored = (e, r, i) => e.u_out[i] === 0 && !(trackOf(r) === "A" && i === 0);
+  function breathMae(e, r) {
+    const p = getPred(e, r); let s = 0, n = 0;
+    e.p.forEach((v, i) => { if (scored(e, r, i)) { s += Math.abs(p[i] - v); n++; } });
+    return s / n;
+  }
+  function drawBreath() {
+    const e = EX[cur];
+    const g = v => (+(+v).toFixed(2)).toString();
+    const pi = e.is_pi ? `PI · kt ${g(e.kt)} · kp ${g(e.kp)} · ki ${g(e.ki)}` : "non-PI controller";
+    document.getElementById("ex-meta").innerHTML = `<span>${WHY[cur] || e.why}</span><span>R ${e.R} · C ${e.C}</span><span>${pi}</span><span>breath ${e.breath}</span>` +
+      [...shown].filter(have).map(r => `<span>${swatch(r)}${fmt(breathMae(e, r), 2)}</span>`).join("");
+    const insEnd = e.u_out.findIndex(v => v === 1);
+    const tEnd = e.t[e.t.length - 1];
+    const draw2 = (id, H, values, yLabel, isP) => {
+      const host = document.getElementById(id); host.innerHTML = "";
+      const W = Math.max(280, host.clientWidth), m = { l: 46, r: 14, t: 10, b: isP ? 8 : 38 };
+      const X = v => m.l + v / tEnd * (W - m.l - m.r);
+      let lo = Math.min(...values), hi = Math.max(...values);
+      const pad = (hi - lo) * 0.08 || 1; lo -= pad; hi += pad;
+      if (!isP) lo = 0;
+      const yt = niceTicks(lo, hi, isP ? 5 : 2);
+      const Y = v => m.t + (hi - v) / (hi - lo) * (H - m.t - m.b);
+      const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, height: H, role: "img", "aria-label": isP ? "Pressure trace and predictions" : "Valve command u_in" });
+      svg.append(el("rect", { x: X(e.t[insEnd]), y: m.t, width: X(tEnd) - X(e.t[insEnd]), height: H - m.t - m.b, class: "exp-shade" }));
+      yt.filter(v => v >= lo && v <= hi).forEach(v => {
+        svg.append(el("line", { x1: m.l, x2: W - m.r, y1: Y(v), y2: Y(v), class: "gridline" }));
+        svg.append(el("text", { x: m.l - 8, y: Y(v) + 4, "text-anchor": "end" }, v));
+      });
+      if (isP) svg.append(el("text", { x: X(e.t[insEnd]) + 6, y: m.t + 14 }, "expiration (not scored)"));
+      else {
+        [0, 0.5, 1, 1.5, 2, 2.5].filter(v => v <= tEnd).forEach(v => svg.append(el("text", { x: X(v), y: H - m.b + 16, "text-anchor": "middle" }, v)));
+        svg.append(el("text", { x: m.l + (W - m.l - m.r) / 2, y: H - 4, "text-anchor": "middle", class: "axis-title" }, "time (s)"));
+      }
+      svg.append(el("text", { x: 12, y: m.t + (H - m.t - m.b) / 2, "text-anchor": "middle", class: "axis-title", transform: `rotate(-90 12 ${m.t + (H - m.t - m.b) / 2})` }, yLabel));
+      const path = (vals, keep) => { let d = "", pen = false; vals.forEach((v, i) => { if (!keep(i)) { pen = false; return; } d += (pen ? "L" : "M") + X(e.t[i]).toFixed(1) + "," + Y(v).toFixed(1); pen = true; }); return d; };
+      if (isP) {
+        svg.append(el("path", { d: path(e.p, () => true), class: "truth" }));
+        runs.filter(r => shown.has(r)).forEach(r => svg.append(el("path", { d: path(getPred(e, r), i => scored(e, r, i)), class: "series", style: `stroke:${color(r)}`, "stroke-dasharray": dashed(r) ? "6 4" : "none" })));
+      } else svg.append(el("path", { d: path(e.u_in, () => true), class: "uin" }));
+      const cross = el("line", { y1: m.t, y2: H - m.b, class: "crosshair", visibility: "hidden" }); svg.append(cross);
+      host.append(svg);
+      return { svg, X, W, cross, host };
+    };
+    const P = draw2("ex-p", 280, [...e.p, ...[...shown].filter(have).flatMap(r => getPred(e, r).filter((_, i) => scored(e, r, i)))], "pressure (cmH₂O)", true);
+    const U = draw2("ex-u", 120, e.u_in, "u_in (%)", false);
+    const tip = document.createElement("div"); tip.className = "tip"; tip.hidden = true; P.host.append(tip);
+    [P, U].forEach(C => {
+      C.svg.addEventListener("pointermove", ev => {
+        const rect = C.svg.getBoundingClientRect(), px = (ev.clientX - rect.left) * C.W / rect.width;
+        let i = 0, best = Infinity; e.t.forEach((v, j) => { const d = Math.abs(C.X(v) - px); if (d < best) { best = d; i = j; } });
+        [P, U].forEach(Z => { Z.cross.setAttribute("x1", Z.X(e.t[i])); Z.cross.setAttribute("x2", Z.X(e.t[i])); Z.cross.setAttribute("visibility", "visible"); });
+        const rows = [...shown].filter(r => have(r) && scored(e, r, i)).map(r => `<div class="row">${swatch(r)}${label(r)}<b>${fmt(getPred(e, r)[i], 2)}</b></div>`).join("");
+        tip.innerHTML = `<div class="muted">step ${i} · t ${e.t[i].toFixed(3)} s${e.u_out[i] ? " · expiration" : ""}</div><div class="row">measured p<b>${fmt(e.p[i], 2)}</b></div>${rows}<div class="row">u_in<b>${fmt(e.u_in[i], 1)}</b></div>`;
+        tip.hidden = false;
+        const pr = P.svg.getBoundingClientRect(), left = P.X(e.t[i]) / P.W * pr.width;
+        tip.style.left = (left + 14 + tip.offsetWidth > pr.width ? left - 14 - tip.offsetWidth : left + 14) + "px";
+        tip.style.top = "8px";
+      });
+      C.svg.addEventListener("pointerleave", () => { tip.hidden = true; [P, U].forEach(Z => Z.cross.setAttribute("visibility", "hidden")); });
+    });
+  }
+  drawBreath();
+  const ro = new ResizeObserver(() => { const w = document.getElementById("ex-p").clientWidth; if (Math.abs(w - (ro._w || 0)) > 4) { ro._w = w; drawBreath(); } });
+  ro.observe(document.getElementById("ex-p"));
+})();
+</script>
